@@ -1,0 +1,154 @@
+---
+title: "Gender Pay Gaps"
+format: html
+editor: visual
+Author: "Dency Claris Thomas"
+---
+
+##  The data-set used
+
+Install the stevedata package in R and use the gss_wages data set. We can read the documentation about the data.
+
+##  Format
+
+A data frame with 11 variables:
+
+`year`
+
+:   the survey year
+
+`realrinc`
+
+:   the respondent's base income (in constant 1986 USD)
+
+`age`
+
+:   the respondent's age in years
+
+`occ10`
+
+:   respondent's occupation code (2010)
+
+`occrecode`
+
+:   recode of the occupation code into one of 11 main categories
+
+`prestg10`
+
+:   respondent's occupational prestige score (2010)
+
+`childs`
+
+:   number of children (0-8)
+
+`wrkstat`
+
+:   the work status of the respondent (full-time, part-time, temporarily not working, unemployed (laid off), retired, school, housekeeper, other)
+
+`gender`
+
+:   respondent's gender (male or female)
+
+`educcat`
+
+:   respondent's degree level (Less Than High School, High School, Junior College, Bachelor, or Graduate)
+
+`maritalcat`
+
+:   respondent's marital status (Married, Widowed, Divorced, Separated, Never Married)
+
+```{r}
+library(stevedata)
+
+library(tidyverse)
+```
+
+```{r}
+gss_wages|> glimpse()
+```
+
+```{r}
+wage_data <- as_tibble(gss_wages)
+
+wage_data
+```
+
+###  Bar plot to visualize the average income by gender
+
+```{r}
+# Average income by gender
+
+avg_income_gender <- wage_data |>
+  group_by(gender) |>
+  summarise(avg_income = mean(realrinc, na.rm = TRUE))
+avg_income_gender
+
+# Bar plot
+ggplot(avg_income_gender, aes(x = gender, y = avg_income, fill = gender)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Average Income by Gender", x = "Gender", y = "Average Income (USD)") +
+  theme_minimal()
+```
+
+###  Time Trends in Gender Pay Gap:
+
+The resulting chart will show how the average income has changed over the survey years for both genders, allowing us to observe trends in the gender pay gap over the survey years.
+
+```{r}
+# Convert 'year' to a factor for better visualization
+wage_data$year <- as.factor(wage_data$year)
+
+# Calculate average income for each gender and year
+avg_income_gender_year <- wage_data |>
+  group_by(year, gender) |>
+  summarise(avg_income = mean(realrinc, na.rm = TRUE))
+  avg_income_gender_year
+  
+# Create a point chart
+ggplot(avg_income_gender_year, aes(x = avg_income, y = year, color = gender)) +
+  geom_point() +
+  labs(title = "Time Trends in Gender Pay Gap",
+       x = "Year",
+       y = "Average Income",
+       color = "Gender") +
+  theme_minimal() 
+```
+
+###  Box Plots of Income by Education Level:
+
+\- Using box plots to compare the distribution of income for different education levels (educcat) separately for males and females.
+
+```{r}
+# Convert 'gender' to a factor for better visualization
+wage_data$gender <- as.factor(wage_data$gender)
+
+# Create box plots
+ggplot(wage_data, aes(x = realrinc , y = educcat, fill = gender)) +
+  geom_boxplot() +
+  labs(title = "Box Plots of Income by Education Level",
+       x = "Income (realrinc)",
+       y = "Education Level",
+       fill = "Gender") +
+  theme_minimal() 
+```
+
+### Scatter Plot of Age vs. Income:
+
+\- Visualizing the correlation between age and income using a scatter plot, with different colors for males and females.
+
+```{r}
+# Create a scatter plot with alpha transparency
+ggplot(wage_data, aes(x = age, y = realrinc, color = gender)) +
+  geom_point(alpha = 0.5, na.rm = TRUE) +
+  labs(title = "Scatter Plot of Age vs. Income",
+       x = "Age",
+       y = "Income (realrinc)",
+       color = "Gender") +
+  theme_minimal()
+```
+
+1\. Income Vs Work Status by Gender
+
+2\. Marital Status vs Income by Gender
+
+3\. Plots for Categorical Variables
