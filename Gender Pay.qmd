@@ -108,8 +108,8 @@ avg_income_gender_year <- wage_data |>
 ggplot(avg_income_gender_year, aes(x = avg_income, y = year, color = gender)) +
   geom_point() +
   labs(title = "Time Trends in Gender Pay Gap",
-       x = "Year",
-       y = "Average Income",
+       x = "Average Income",
+       y = "Year",
        color = "Gender") +
   theme_minimal() 
 ```
