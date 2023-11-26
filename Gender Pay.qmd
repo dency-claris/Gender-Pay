@@ -5,11 +5,11 @@ editor: visual
 Author: "Dency Claris Thomas"
 ---
 
-##  The data-set used
+## The data-set used
 
 Install the stevedata package in R and use the gss_wages data set. We can read the documentation about the data.
 
-##  Format
+## Format
 
 A data frame with 11 variables:
 
@@ -73,7 +73,7 @@ wage_data <- as_tibble(gss_wages)
 wage_data
 ```
 
-###  Bar plot to visualize the average income by gender
+### Bar plot to visualize the average income by gender
 
 ```{r}
 # Average income by gender
@@ -90,7 +90,7 @@ ggplot(avg_income_gender, aes(x = gender, y = avg_income, fill = gender)) +
   theme_minimal()
 ```
 
-###  Time Trends in Gender Pay Gap:
+### Time Trends in Gender Pay Gap:
 
 The resulting chart will show how the average income has changed over the survey years for both genders, allowing us to observe trends in the gender pay gap over the survey years.
 
@@ -114,7 +114,7 @@ ggplot(avg_income_gender_year, aes(x = avg_income, y = year, color = gender)) +
   theme_minimal() 
 ```
 
-###  Box Plots of Income by Education Level:
+### Box Plots of Income by Education Level:
 
 \- Using box plots to compare the distribution of income for different education levels (educcat) separately for males and females.
 
