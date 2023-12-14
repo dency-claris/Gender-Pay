@@ -71,6 +71,9 @@ gss_wages|> glimpse()
 wage_data <- as_tibble(gss_wages)
 
 wage_data
+
+wage_data_filtered <- wage_data[complete.cases(wage_data), ]
+wage_data_filtered
 ```
 
 ### Bar plot to visualize the average income by gender
@@ -78,7 +81,7 @@ wage_data
 ```{r}
 # Average income by gender
 
-avg_income_gender <- wage_data |>
+avg_income_gender <- wage_data_filtered |>
   group_by(gender) |>
   summarise(avg_income = mean(realrinc, na.rm = TRUE))
 avg_income_gender
@@ -88,6 +91,39 @@ ggplot(avg_income_gender, aes(x = gender, y = avg_income, fill = gender)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "Average Income by Gender", x = "Gender", y = "Average Income (USD)") +
   theme_minimal()
+```
+
+### Bar plot to visualize the average income by gender (Filtered with interquartile range)
+
+```{r}
+
+# Function to filter data within the interquartile range
+filter_iqr <- function(x) {
+  lower <- quantile(x, 0.25, na.rm = TRUE)
+  upper <- quantile(x, 0.75, na.rm = TRUE)
+  return(between(x, lower, upper))
+}
+
+# Filter data within the interquartile range
+filtered_data <- wage_data_filtered |>
+  group_by(gender) |>
+  filter(filter_iqr(realrinc))
+
+# Calculate the average income after filtering
+avg_income_filtered <- filtered_data |>
+  group_by(gender) |>
+  summarise(avg_income = mean(realrinc, na.rm = TRUE))
+avg_income_filtered
+
+# Bar plot
+ggplot(avg_income_filtered, aes(x = gender, y = avg_income, fill = gender)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Average Income by Gender (Filtered within Interquartile Range)",
+       x = "Gender",
+       y = "Average Income (USD)",
+       fill = "Gender") +
+  theme_minimal()
+
 ```
 
 ### Time Trends in Gender Pay Gap:
@@ -123,7 +159,7 @@ ggplot(avg_income_gender_year, aes(x = avg_income, y = year, color = gender)) +
 wage_data$gender <- as.factor(wage_data$gender)
 
 # Create box plots
-ggplot(wage_data, aes(x = realrinc , y = educcat, fill = gender)) +
+ggplot(wage_data_filtered, aes(x = realrinc , y = educcat, fill = gender)) +
   geom_boxplot() +
   labs(title = "Box Plots of Income by Education Level",
        x = "Income (realrinc)",
@@ -147,8 +183,101 @@ ggplot(wage_data, aes(x = age, y = realrinc, color = gender)) +
   theme_minimal()
 ```
 
-1\. Income Vs Work Status by Gender
+### Grouped Bar Plot of Income vs Work Status by Gender
 
-2\. Marital Status vs Income by Gender
+```{r}
 
-3\. Plots for Categorical Variables
+# Grouped Bar Plot
+ggplot(wage_data_filtered, aes(x = wrkstat, y = realrinc, fill = gender)) +
+  geom_bar(stat = "summary", fun = "mean", position = "dodge") +
+  labs(title = "Income vs Work Status by Gender",
+       x = "Work Status",
+       y = "Mean Income (realrinc)",
+       fill = "Gender") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+```
+
+### Marital Status vs Income by Gender
+
+```{r}
+
+# Box Plot
+ggplot(wage_data_filtered, aes(x = maritalcat, y = realrinc, fill = gender)) +
+  geom_boxplot() +
+  labs(title = "Income vs Marital Status by Gender",
+       x = "Marital Status",
+       y = "Income (realrinc)",
+       fill = "Gender") +
+  theme_minimal() 
+
+```
+
+### Distribution of Marital Status and Work Status by Gender
+
+```{r}
+# Stacked Bar Plot
+ggplot(wage_data_filtered, aes(x = maritalcat, fill = wrkstat)) +
+  geom_bar(position = "stack") +
+  facet_wrap(~gender, scales = 'free_y') +
+  labs(title = "Distribution of Marital Status and Work Status by Gender",
+       x = "Marital Status",
+       fill = "Work Status") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+### Average Income by Number of Children
+
+```{r}
+# Remove rows with NA values
+wage_data_filtered <- wage_data[complete.cases(wage_data[, c('childs', 'realrinc', 'gender', 'maritalcat')]), ]
+
+# Create Grouped Bar Plot
+ggplot(wage_data_filtered, aes(x = factor(childs), y = realrinc, fill = gender)) +
+  geom_bar(stat = "summary", fun = "mean", position = "dodge") +
+  labs(title = "Average Income by Number of Children",
+       x = "Number of Children",
+       y = "Average Income (realrinc)",
+       fill = "Gender") +
+  theme_minimal()
+
+```
+
+### Distribution of Income Levels by Number of Children
+
+```{r}
+# Define income categories (you can adjust these based on your data)
+income_categories <- cut(wage_data_filtered$realrinc, breaks = c(0, 20000, 40000, 60000, 80000, Inf),
+                          labels = c("0-20k", "20k-40k", "40k-60k", "60k-80k", "80k+"), include.lowest = TRUE)
+
+# Create Stacked Bar Plot
+ggplot(wage_data_filtered, aes(x = factor(childs), fill = income_categories)) +
+  geom_bar(position = "fill") +
+  facet_wrap(~gender, scales = 'free_y') +
+  labs(title = "Distribution of Income Levels by Number of Children",
+       x = "Number of Children",
+       fill = "Income Level") +
+  theme_minimal()
+
+```
+
+### Correlation between age, income and child
+
+```{r}
+library(corrplot)
+
+# Select numerical variables for correlation analysis
+numerical_vars <- wage_data_filtered |>
+  select(age, realrinc, childs)
+
+# Calculate correlation matrix
+cor_matrix <- cor(numerical_vars, use = "complete.obs")
+
+# Create correlation heatmap
+corrplot(cor_matrix, method = "color", addCoef.col = "black", tl.col = "black")
+
+```
