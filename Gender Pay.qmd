@@ -281,3 +281,134 @@ cor_matrix <- cor(numerical_vars, use = "complete.obs")
 corrplot(cor_matrix, method = "color", addCoef.col = "black", tl.col = "black")
 
 ```
+
+```{r}
+# Define salary ranges
+salary_ranges <- cut(wage_data_filtered$realrinc, breaks = c(0, 20000, 40000, 60000, 80000, Inf),
+                     labels = c("0-20k", "20k-40k", "40k-60k", "60k-80k", "80k+"))
+
+# Create a new variable for salary ranges
+wages <- mutate(wage_data_filtered, salary_range = salary_ranges)
+
+# Filter out rows with missing gender information
+#gss_wages <- filter(gss_wages, !is.na(gender))
+
+# Create a summary table for counting the number of men and women in each salary range
+summary_table <- wages |>
+  group_by(gender, salary_range) |>
+  summarise(count = n()) |>
+  mutate(percentage = (count / sum(count)) * 100)
+
+# Plot the line plot
+ggplot(summary_table, aes(x = salary_range, y = percentage, color = gender, group = gender)) +
+  geom_line(size = 1) +
+  geom_point(size = 3) +
+  geom_text(aes(label = sprintf("%.1f%%", percentage), vjust = -0.5), position = position_dodge(0.8), size = 3) +
+  labs(title = "Income Distribution by Gender",
+       x = "Salary Range",
+       y = "Percentage",
+       color = "Gender") +
+  theme_minimal()+
+  theme(axis.text.y = element_blank(),
+        axis.title.y = element_blank())
+```
+
+```{r}
+wage_data_filtered$log_realrinc <- log1p(wage_data_filtered$realrinc)
+# Create a violin plot
+ggplot(wage_data_filtered, aes(x = cut(age, breaks = seq(20, 90, by = 10)), y = realrinc, fill = gender)) +
+  geom_violin() +
+  labs(title = "Income Distribution Across Age Categories by Gender",
+       x = "Age Category",
+       y = "Income",
+       fill = "Gender") +
+  theme_minimal()
+
+```
+
+```{r}
+# Log transform the income variable
+wage_data_filtered$log_realrinc <- log1p(wage_data_filtered$realrinc)  # log1p is used to handle zeros in the data
+
+# Create a box plot with log-transformed income
+ggplot(wage_data_filtered, aes(x = cut(age, breaks = seq(20, 90, by = 10)), y = log_realrinc, fill = gender)) +
+  geom_boxplot() +
+  labs(title = "Log-Transformed Income Distribution Across Age Categories by Gender",
+       x = "Age Category",
+       y = "Log(Income)",
+       fill = "Gender") +
+  theme_minimal()
+```
+
+```{r}
+# Create an ECDF plot
+ggplot(wage_data_filtered, aes(x = realrinc, color = wrkstat)) +
+  stat_ecdf(geom = "step", size = 1.5) +
+  labs(title = "ECDF of Income Across Work Status",
+       x = "Income",
+       y = "Cumulative Probability",
+       color = "Work Status") +
+  theme_minimal()
+```
+
+```{r}
+# Create a quantile-quantile plot
+ggplot(wage_data_filtered, aes(sample = realrinc, color = wrkstat)) +
+  stat_qq() +
+  labs(title = "Quantile-Quantile Plot of Income Across Work Status",
+       x = "Theoretical Quantiles",
+       y = "Sample Quantiles",
+       color = "Work Status") +
+  theme_minimal()
+
+```
+
+```{r}
+# Log transform the income variable
+wage_data_filtered$log_realrinc <- log1p(wage_data_filtered$realrinc)  # log1p is used to handle zeros in the data
+
+# Create a kernel density plot with log-transformed income
+ggplot(wage_data_filtered, aes(x = log_realrinc, fill = wrkstat)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Density of Log-Transformed Income Across Work Status",
+       x = "Log(Income)",
+       y = "Density",
+       fill = "Work Status") +
+  facet_wrap(~gender) +
+  theme_minimal()
+```
+
+```{r}
+# Create a scatter plot
+ggplot(wage_data_filtered, aes(x = childs, y = realrinc, color = maritalcat)) +
+  geom_point(alpha = 0.6, size = 3) +
+  labs(title = "Scatter Plot of Income vs. Number of Children, Colored by Marital Status",
+       x = "Number of Children",
+       y = "Income",
+       color = "Marital Status") +
+  theme_minimal()
+```
+
+```{r}
+# Create a table
+marital_child_table <- table(wage_data_filtered$maritalcat, wage_data_filtered$childs)
+
+# Convert the table to a data frame
+marital_child_df <- as.data.frame(as.table(marital_child_table))
+
+# Rename the columns for better clarity
+colnames(marital_child_df) <- c("Marital Status", "Number of Children", "Count")
+
+# Print the resulting data frame
+print(marital_child_df)
+
+# Create a grouped bar plot
+ggplot(marital_child_df, aes(x = interaction(`Marital Status`, `Number of Children`), y = Count, fill = `Number of Children`)) +
+  geom_bar(stat = "identity", position = "dodge", color = "white") +
+  labs(title = "Relationship Between Marital Status, Number of Children, and Average Income",
+       x = "Marital Status and Number of Children",
+       y = "Count",
+       fill = "Number of Children") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
