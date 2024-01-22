@@ -6,11 +6,11 @@ author: "Dency Claris Thomas"
 transition: fade
 ---
 
-## The data-set used
+## The data-set used  {data-visibility="hidden"}
 
 Install the stevedata package in R and use the gss_wages data set. We can read the documentation about the data.
 
-## Format
+## Format  {data-visibility="hidden"}
 
 A data frame with 11 variables:
 
@@ -83,9 +83,7 @@ avg_income_gender_year <- wage_data |>
   avg_income_gender_year
 ```
 
-## Time Trends in Gender Pay Gap:
-
-The resulting chart will show how the average income has changed over the survey years for both genders, allowing us to observe trends in the gender pay gap over the survey years.
+## Time Trends in Gender Pay Gap
 
 ```{r}
 # Create a point chart
