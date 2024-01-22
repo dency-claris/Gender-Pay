@@ -93,39 +93,6 @@ ggplot(avg_income_gender, aes(x = gender, y = avg_income, fill = gender)) +
   theme_minimal()
 ```
 
-### Bar plot to visualize the average income by gender (Filtered with interquartile range)
-
-```{r}
-
-# Function to filter data within the interquartile range
-filter_iqr <- function(x) {
-  lower <- quantile(x, 0.25, na.rm = TRUE)
-  upper <- quantile(x, 0.75, na.rm = TRUE)
-  return(between(x, lower, upper))
-}
-
-# Filter data within the interquartile range
-filtered_data <- wage_data_filtered |>
-  group_by(gender) |>
-  filter(filter_iqr(realrinc))
-
-# Calculate the average income after filtering
-avg_income_filtered <- filtered_data |>
-  group_by(gender) |>
-  summarise(avg_income = mean(realrinc, na.rm = TRUE))
-avg_income_filtered
-
-# Bar plot
-ggplot(avg_income_filtered, aes(x = gender, y = avg_income, fill = gender)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(title = "Average Income by Gender (Filtered within Interquartile Range)",
-       x = "Gender",
-       y = "Average Income (USD)",
-       fill = "Gender") +
-  theme_minimal()
-
-```
-
 ### Time Trends in Gender Pay Gap:
 
 The resulting chart will show how the average income has changed over the survey years for both genders, allowing us to observe trends in the gender pay gap over the survey years.
@@ -150,7 +117,28 @@ ggplot(avg_income_gender_year, aes(x = avg_income, y = year, color = gender)) +
   theme_minimal() 
 ```
 
-### Box Plots of Income by Education Level:
+```{r}
+# Convert 'year' to a factor for better visualization
+wage_data$year <- as.factor(wage_data$year)
+
+# Calculate average income for each gender and year
+avg_income_gender_year <- wage_data %>%
+  group_by(year, gender) %>%
+  summarise(avg_income = mean(realrinc, na.rm = TRUE))
+
+# Create a point and line chart
+ggplot(avg_income_gender_year, aes(x = year, y = avg_income, color = gender, group = gender)) +
+  geom_point(size = 3) +
+  geom_line(size = 1, alpha = 0.7) +
+  labs(title = "Time Trends in Gender Pay Gap",
+       x = "Year",
+       y = "Average Income",
+       color = "Gender") +
+  theme_minimal()
+
+```
+
+### Income by Education Level:
 
 \- Using box plots to compare the distribution of income for different education levels (educcat) separately for males and females.
 
@@ -161,14 +149,14 @@ wage_data$gender <- as.factor(wage_data$gender)
 # Create box plots
 ggplot(wage_data_filtered, aes(x = realrinc , y = educcat, fill = gender)) +
   geom_boxplot() +
-  labs(title = "Box Plots of Income by Education Level",
+  labs(title = "Income by Education Level",
        x = "Income (realrinc)",
        y = "Education Level",
        fill = "Gender") +
   theme_minimal() 
 ```
 
-### Scatter Plot of Age vs. Income:
+### Age vs. Income:
 
 \- Visualizing the correlation between age and income using a scatter plot, with different colors for males and females.
 
@@ -176,14 +164,14 @@ ggplot(wage_data_filtered, aes(x = realrinc , y = educcat, fill = gender)) +
 # Create a scatter plot with alpha transparency
 ggplot(wage_data, aes(x = age, y = realrinc, color = gender)) +
   geom_point(alpha = 0.5, na.rm = TRUE) +
-  labs(title = "Scatter Plot of Age vs. Income",
+  labs(title = "Age vs. Income",
        x = "Age",
        y = "Income (realrinc)",
        color = "Gender") +
   theme_minimal()
 ```
 
-### Grouped Bar Plot of Income vs Work Status by Gender
+### Income vs Work Status by Gender
 
 ```{r}
 
@@ -290,9 +278,6 @@ salary_ranges <- cut(wage_data_filtered$realrinc, breaks = c(0, 20000, 40000, 60
 # Create a new variable for salary ranges
 wages <- mutate(wage_data_filtered, salary_range = salary_ranges)
 
-# Filter out rows with missing gender information
-#gss_wages <- filter(gss_wages, !is.na(gender))
-
 # Create a summary table for counting the number of men and women in each salary range
 summary_table <- wages |>
   group_by(gender, salary_range) |>
@@ -311,6 +296,63 @@ ggplot(summary_table, aes(x = salary_range, y = percentage, color = gender, grou
   theme_minimal()+
   theme(axis.text.y = element_blank(),
         axis.title.y = element_blank())
+```
+
+```{r}
+# Define a mapping of original work statuses to shorter names
+work_status_mapping <- c("Unemployed, Laid Off" = "Unemployed",
+                         "Temporarily Not Working" = "Temporarily NW")
+
+# Create a new variable with shorter work status names
+wage_data_filtered2 <- wage_data_filtered |>
+  mutate(short_wrkstat = recode_factor(wrkstat, !!!work_status_mapping))
+
+# Exclude "Other" category and reorder work statuses based on average income
+ordered_wrkstat <- wage_data_filtered2 |>
+  filter(wrkstat != "Other") |>
+  group_by(short_wrkstat) |>
+  summarise(avg_income = mean(realrinc, na.rm = TRUE)) |>
+  arrange(avg_income) |>
+  pull(short_wrkstat)
+
+# Create a line plot with sorted work statuses (excluding "Other") and shorter names
+ggplot(wage_data_filtered2 |> filter(wrkstat != "Other"), 
+       aes(x = reorder(factor(short_wrkstat, levels = ordered_wrkstat), realrinc, FUN = mean), 
+           y = realrinc, color = gender, group = gender)) +
+  stat_summary(fun = mean, geom = "line", size = 1) +
+  labs(title = "Average Income by Work Status and Gender",
+       x = "Work Status",
+       y = "Average Income",
+       color = "Gender") +
+  theme_minimal() +
+  guides(x = guide_axis(n.dodge = 2))
+
+```
+
+```{r}
+# Define a mapping of original education levels to shorter names
+educcat_mapping <- c("Less Than High School" = "Less Than HS")
+
+# Create a new variable with shorter work status names
+wage_data_filtered2 <- wage_data_filtered %>%
+  mutate(short_educcat = recode_factor(educcat, !!!educcat_mapping))
+
+# Reorder education levels based on average income
+ordered_educcat <- wage_data_filtered2 %>%
+  group_by(educcat) %>%
+  summarise(avg_income = mean(realrinc, na.rm = TRUE)) %>%
+  arrange(avg_income) %>%
+  pull(educcat)
+
+# Create a line plot with sorted education levels
+ggplot(wage_data_filtered2, aes(x = reorder(short_educcat, realrinc, FUN = mean), y = realrinc, color = gender, group = gender)) +
+  stat_summary(fun = mean, geom = "line", size = 1) +
+  labs(title = "Average Income by Education Level and Gender",
+       x = "Education Level",
+       y = "Average Income",
+       color = "Gender") +
+  theme_minimal() +
+  guides(x = guide_axis(n.dodge = 2))
 ```
 
 ```{r}
@@ -341,29 +383,6 @@ ggplot(wage_data_filtered, aes(x = cut(age, breaks = seq(20, 90, by = 10)), y = 
 ```
 
 ```{r}
-# Create an ECDF plot
-ggplot(wage_data_filtered, aes(x = realrinc, color = wrkstat)) +
-  stat_ecdf(geom = "step", size = 1.5) +
-  labs(title = "ECDF of Income Across Work Status",
-       x = "Income",
-       y = "Cumulative Probability",
-       color = "Work Status") +
-  theme_minimal()
-```
-
-```{r}
-# Create a quantile-quantile plot
-ggplot(wage_data_filtered, aes(sample = realrinc, color = wrkstat)) +
-  stat_qq() +
-  labs(title = "Quantile-Quantile Plot of Income Across Work Status",
-       x = "Theoretical Quantiles",
-       y = "Sample Quantiles",
-       color = "Work Status") +
-  theme_minimal()
-
-```
-
-```{r}
 # Log transform the income variable
 wage_data_filtered$log_realrinc <- log1p(wage_data_filtered$realrinc)  # log1p is used to handle zeros in the data
 
@@ -390,25 +409,53 @@ ggplot(wage_data_filtered, aes(x = childs, y = realrinc, color = maritalcat)) +
 ```
 
 ```{r}
-# Create a table
-marital_child_table <- table(wage_data_filtered$maritalcat, wage_data_filtered$childs)
+# Create kernel density plots with log-transformed income
+ggplot(wage_data_filtered, aes(x = log(realrinc), fill = gender)) +
+  geom_density(alpha = 0.5, color = "black") +
+  facet_wrap(~maritalcat, scales = "free") +
+  labs(title = "Log-Transformed Income Density Distribution by Marital Status and Gender",
+       x = "Log(Income)",
+       fill = "Gender") +
+  theme_minimal()
 
-# Convert the table to a data frame
-marital_child_df <- as.data.frame(as.table(marital_child_table))
+```
 
-# Rename the columns for better clarity
-colnames(marital_child_df) <- c("Marital Status", "Number of Children", "Count")
+```{r}
+# Create kernel density plots with log-transformed income
+ggplot(wage_data_filtered, aes(x = log(realrinc), fill = gender)) +
+  geom_density(alpha = 0.5, color = "black") +
+  facet_wrap(~educcat, scales = "free") +
+  labs(title = "Log-Transformed Income Density Distribution by Education Level and Gender",
+       x = "Log(Income)",
+       fill = "Gender") +
+  theme_minimal()
+```
 
-# Print the resulting data frame
-print(marital_child_df)
+```{r}
+# Create kernel density plots with log-transformed income based on the number of children
+ggplot(wage_data_filtered, aes(x = log(realrinc), fill = gender)) +
+  geom_density(alpha = 0.5, color = "black") +
+  facet_wrap(~childs, scales = "free") +
+  labs(title = "Log-Transformed Income Density Distribution by Number of Children and Gender",
+       x = "Log(Income)",
+       fill = "Gender") +
+  theme_minimal()
 
-# Create a grouped bar plot
-ggplot(marital_child_df, aes(x = interaction(`Marital Status`, `Number of Children`), y = Count, fill = `Number of Children`)) +
-  geom_bar(stat = "identity", position = "dodge", color = "white") +
-  labs(title = "Relationship Between Marital Status, Number of Children, and Average Income",
-       x = "Marital Status and Number of Children",
-       y = "Count",
-       fill = "Number of Children") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+# Create custom age groups
+wage_data_filtered3 <- wage_data_filtered %>%
+  mutate(age_group = cut(age, breaks = c(-Inf, 30, 40, 50, 60, 70, Inf), labels = c("20-30", "30-40", "40-50", "50-60", "60-70", "70+")))
+
+# Create kernel density plots with log-transformed income based on custom age groups
+ggplot(wage_data_filtered3, aes(x = log(realrinc), fill = gender)) +
+  geom_density(alpha = 0.5, color = "black") +
+  facet_wrap(~age_group, scales = "free") +
+  labs(title = "Log-Transformed Income Density Distribution by Age Group and Gender",
+       x = "Log(Income)",
+       fill = "Gender") +
+  theme_minimal()
+
+
 ```

@@ -1,0 +1,241 @@
+---
+title: "Gender Pay Gap"
+format: revealjs
+editor: visual
+author: "Dency Claris Thomas"
+transition: fade
+---
+
+## The data-set used
+
+Install the stevedata package in R and use the gss_wages data set. We can read the documentation about the data.
+
+## Format
+
+A data frame with 11 variables:
+
+`year`
+
+:   the survey year
+
+`realrinc`
+
+:   the respondent's base income (in constant 1986 USD)
+
+`age`
+
+:   the respondent's age in years
+
+`occ10`
+
+:   respondent's occupation code (2010)
+
+`occrecode`
+
+:   recode of the occupation code into one of 11 main categories
+
+`prestg10`
+
+:   respondent's occupational prestige score (2010)
+
+`childs`
+
+:   number of children (0-8)
+
+`wrkstat`
+
+:   the work status of the respondent (full-time, part-time, temporarily not working, unemployed (laid off), retired, school, housekeeper, other)
+
+`gender`
+
+:   respondent's gender (male or female)
+
+`educcat`
+
+:   respondent's degree level (Less Than High School, High School, Junior College, Bachelor, or Graduate)
+
+`maritalcat`
+
+:   respondent's marital status (Married, Widowed, Divorced, Separated, Never Married)
+
+```{r}
+library(stevedata)
+
+library(tidyverse)
+```
+
+```{r}
+wage_data <- as_tibble(gss_wages)
+wage_data
+
+wage_data_filtered <- wage_data[complete.cases(wage_data), ]
+wage_data_filtered
+```
+
+```{r}
+# Convert 'year' to a factor for better visualization
+wage_data$year <- as.factor(wage_data$year)
+
+# Calculate average income for each gender and year
+avg_income_gender_year <- wage_data |>
+  group_by(year, gender) |>
+  summarise(avg_income = mean(realrinc, na.rm = TRUE))
+  avg_income_gender_year
+```
+
+## Time Trends in Gender Pay Gap:
+
+The resulting chart will show how the average income has changed over the survey years for both genders, allowing us to observe trends in the gender pay gap over the survey years.
+
+```{r}
+# Create a point chart
+ggplot(avg_income_gender_year, aes(x = avg_income, y = year, color = gender)) +
+  geom_point() +
+  labs(title = "Time Trends in Gender Pay Gap",
+       x = "Average Income",
+       y = "Year",
+       color = "Gender") +
+  theme_minimal() 
+```
+
+## Income across different Education Level for each Gender
+
+```{r}
+ # Define a mapping of original education levels to shorter names
+educcat_mapping <- c("Less Than High School" = "Less Than HS")
+
+# Create a new variable with shorter work status names
+wage_data_filtered2 <- wage_data_filtered %>%
+  mutate(short_educcat = recode_factor(educcat, !!!educcat_mapping))
+
+# Reorder education levels based on average income
+ordered_educcat <- wage_data_filtered2 %>%
+  group_by(educcat) %>%
+  summarise(avg_income = mean(realrinc, na.rm = TRUE)) %>%
+  arrange(avg_income) %>%
+  pull(educcat)
+
+# Create a line plot with sorted education levels
+ggplot(wage_data_filtered2, aes(x = reorder(short_educcat, realrinc, FUN = mean), y = realrinc, color = gender, group = gender)) +
+  stat_summary(fun = mean, geom = "line", size = 1) +
+  labs(title = "Income by Education Level and Gender",
+       x = "Education Level",
+       y = "Average Income",
+       color = "Gender") +
+  theme_minimal() +
+  guides(x = guide_axis(n.dodge = 2))
+```
+
+## Income across different work status for each Gender
+
+```{r}
+# Define a mapping of original work statuses to shorter names
+work_status_mapping <- c("Unemployed, Laid Off" = "Unemployed",
+                         "Temporarily Not Working" = "Temporarily NW")
+
+# Create a new variable with shorter work status names
+wage_data_filtered2 <- wage_data_filtered |>
+  mutate(short_wrkstat = recode_factor(wrkstat, !!!work_status_mapping))
+
+# Exclude "Other" category and reorder work statuses based on average income
+ordered_wrkstat <- wage_data_filtered2 |>
+  filter(wrkstat != "Other") |>
+  group_by(short_wrkstat) |>
+  summarise(avg_income = mean(realrinc, na.rm = TRUE)) |>
+  arrange(avg_income) |>
+  pull(short_wrkstat)
+
+# Create a line plot with sorted work statuses (excluding "Other") and shorter names
+ggplot(wage_data_filtered2 |> filter(wrkstat != "Other"), 
+       aes(x = reorder(factor(short_wrkstat, levels = ordered_wrkstat), realrinc, FUN = mean), 
+           y = realrinc, color = gender, group = gender)) +
+  stat_summary(fun = mean, geom = "line", size = 1) +
+  labs(title = "Average Income by Work Status and Gender",
+       x = "Work Status",
+       y = "Average Income",
+       color = "Gender") +
+  theme_minimal() +
+  guides(x = guide_axis(n.dodge = 2))
+```
+
+## Income across different Marital status for each Gender
+
+```{r}
+
+# Reorder Marital Status based on average income
+ordered_maritalcat <- wage_data_filtered %>%
+  group_by(maritalcat) %>%
+  summarise(avg_income = mean(realrinc, na.rm = TRUE)) %>%
+  arrange(avg_income) %>%
+  pull(maritalcat)
+
+# Create a line plot with sorted Marital Status
+ggplot(wage_data_filtered, aes(x = reorder(maritalcat, realrinc, FUN = mean), y = realrinc, color = gender, group = gender)) +
+  stat_summary(fun = mean, geom = "line", size = 1) +
+  labs(title = "Income by Marital Status and Gender",
+       x = "Marital Status",
+       y = "Average Income",
+       color = "Gender") +
+  theme_minimal() +
+  guides(x = guide_axis(n.dodge = 2))
+```
+
+## Income by Gender based on number of children
+
+```{r}
+# Create kernel density plots with log-transformed income based on the number of children
+ggplot(wage_data_filtered, aes(x = log(realrinc), fill = gender)) +
+  geom_density(alpha = 0.5, color = "black") +
+  facet_wrap(~childs, scales = "free") +
+  labs(title = "Log-Transformed Income Density Distribution by Number of Children and Gender",
+       x = "Log(Income)",
+       fill = "Gender") +
+  theme_minimal()
+```
+
+## Income across different age categories by Gender
+
+```{r}
+# Create custom age groups
+wage_data_filtered3 <- wage_data_filtered %>%
+  mutate(age_group = cut(age, breaks = c(-Inf, 30, 40, 50, 60, 70, Inf), labels = c("20-30", "30-40", "40-50", "50-60", "60-70", "70+")))
+
+# Create kernel density plots with log-transformed income based on custom age groups
+ggplot(wage_data_filtered3, aes(x = log(realrinc), fill = gender)) +
+  geom_density(alpha = 0.5, color = "black") +
+  facet_wrap(~age_group, scales = "free") +
+  labs(title = "Log-Transformed Income Density Distribution by Age Group and Gender",
+       x = "Log(Income)",
+       fill = "Gender") +
+  theme_minimal()
+```
+
+## Percentage of males and females at different Salary ranges.
+
+```{r}
+# Define salary ranges
+salary_ranges <- cut(wage_data_filtered$realrinc, breaks = c(0, 20000, 40000, 60000, 80000, Inf),
+                     labels = c("0-20k", "20k-40k", "40k-60k", "60k-80k", "80k+"))
+
+# Create a new variable for salary ranges
+wages <- mutate(wage_data_filtered, salary_range = salary_ranges)
+
+# Create a summary table for counting the number of men and women in each salary range
+summary_table <- wages |>
+  group_by(gender, salary_range) |>
+  summarise(count = n()) |>
+  mutate(percentage = (count / sum(count)) * 100)
+
+# Plot the line plot
+ggplot(summary_table, aes(x = salary_range, y = percentage, color = gender, group = gender)) +
+  geom_line(size = 1) +
+  geom_point(size = 3) +
+  geom_text(aes(label = sprintf("%.1f%%", percentage), vjust = -0.5), position = position_dodge(0.8), size = 3) +
+  labs(title = "Income Distribution by Gender",
+       x = "Salary Range",
+       y = "Percentage",
+       color = "Gender") +
+  theme_minimal()+
+  theme(axis.text.y = element_blank(),
+        axis.title.y = element_blank())
+```
