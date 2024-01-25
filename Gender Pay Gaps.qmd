@@ -6,13 +6,13 @@ author: "Dency Claris Thomas"
 transition: fade
 ---
 
-## The data-set used  {data-visibility="hidden"}
+## The data-set used
 
-Install the stevedata package in R and use the gss_wages data set. We can read the documentation about the data.
+Install the stevedata package in R and use the gss_wages data set. It contains 11 variables: `year`, `realrinc`, `age`, `occ10`, `occrecode`, `prestg10`, `childs`, `wrkstat`, `gender`, `educcat`, and `maritalcat`.
 
-## Format  {data-visibility="hidden"}
+## Format
 
-A data frame with 11 variables:
+<small>A data frame with 11 variables:
 
 `year`
 
@@ -56,7 +56,7 @@ A data frame with 11 variables:
 
 `maritalcat`
 
-:   respondent's marital status (Married, Widowed, Divorced, Separated, Never Married)
+:   respondent's marital status (Married, Widowed, Divorced, Separated, Never Married) </small>
 
 ```{r}
 library(stevedata)
